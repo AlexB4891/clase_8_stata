@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase 8: Conciliación Tributaria en Stata</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Roboto Slab', serif; }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .code-block-container {
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4A5568;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .code-block-container:hover .copy-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-teal-700">Stata Clase 8</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#introduccion" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Introducción</a>
+                        <a href="#macros" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Macros</a>
+                        <a href="#lectura-datos" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Lectura de Datos</a>
+                        <a href="#evaluacion-missings" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Missings y Ceros</a>
+                        <a href="#transformacion-variables" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Transformación</a>
+                        <a href="#construccion-variables" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Construcción</a>
+                        <a href="#merge-join" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Merge (Join)</a>
+                        <a href="#resumenes-finales" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Resúmenes</a>
+                        <a href="#guardar" class="nav-link text-gray-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent hover:border-teal-600">Guardar</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="introduccion" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">¡Bienvenida a la Clase 8!</h2>
+                <p class="mt-4 text-lg text-slate-600">En esta clase, aprenderemos a construir una base de datos para la conciliación tributaria, combinando datos de diferentes fuentes y realizando transformaciones complejas en Stata.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">El do-file de hoy es un ejemplo práctico de cómo se realiza una tarea de **ETL (Extracción, Transformación y Carga)** en un entorno de análisis de datos real. Nos enfocaremos en los siguientes conceptos clave:</p>
+                <ul class="list-disc list-inside space-y-2 text-slate-600">
+                    <li>El uso avanzado de **macros globales** para organizar directorios.</li>
+                    <li>La importancia de limpiar variables de texto con `tostring` y `replace`.</li>
+                    <li>El uso de la función `cond()` para aplicar lógica condicional en la creación de variables.</li>
+                    <li>Comandos cruciales para combinar datos como **`tempfile`** y **`merge`**.</li>
+                    <li>Un repaso rápido y esencial de **`preserve`** y **`restore`**.</li>
+                </ul>
+                <p class="mt-6 text-slate-700">¡Prepárate para construir tu propia base de conciliación!</p>
+            </div>
+        </section>
+        
+        <section id="macros" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">1. Macros Globales: Organización de Directorios</h2>
+                <p class="mt-4 text-lg text-slate-600">Una práctica fundamental para scripts escalables y portátiles.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">En la Clase 5, hablamos de las macros locales, que son temporales. Hoy, usaremos **macros globales**, que son aún más poderosas para la organización de proyectos. Una macro global existe a lo largo de toda la sesión de Stata y se llama con un signo de dólar (`$`).</p>
+                <ul class="list-disc list-inside space-y-2 text-slate-600 mb-4">
+                    <li><strong>`global basedir`</strong>: Define la macro global `basedir` con la ruta de tu carpeta principal del curso.</li>
+                    <li><strong>`global outputdir "$basedir/output"`</strong>: Define una macro para el directorio de salida. Fíjate cómo usa la macro `basedir` para construir la ruta. Esto es lo que hace que tu código sea flexible: si cambias la ruta de la carpeta base, todas las demás rutas se actualizan automáticamente.</li>
+                </ul>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 1. DEFINICIÓN DE DIRECTORIOS ********
+global basedir    "C:\Users\Research assistant\Documents\stata_curso"
+global outputdir  "$basedir/output"
+global tempdir    "$basedir/temp"
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="lectura-datos" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">2. Lectura y Limpieza de Datos</h2>
+                <p class="mt-4 text-lg text-slate-600">Importando desde CSV y preparando la clave de unión.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Importamos nuestro archivo principal de conciliación y realizamos una limpieza esencial de la variable `id_empresa`, que será nuestra clave para unir tablas.</p>
+
+                <h3 class="text-xl font-bold mb-3">Importar Archivo CSV (`import delimited`)</h3>
+                <p class="mb-3 text-slate-600">Usamos `import delimited` para archivos de texto como CSV. La opción `encoding(utf8)` es crucial para evitar problemas con caracteres especiales (ej. acentos, la ñ).</p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 2. LECTURA DE BASE DE CONCILIACIÓN ********
+import delimited "$basedir/conciliacion_tributaria_simulada.csv", clear ///
+    case(preserve) encoding(utf8)
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+                
+                <h3 class="text-xl font-bold mb-3">Limpieza de Variables de Texto (`tostring` y `replace`)</h3>
+                <p class="mb-3 text-slate-600">La variable `id_empresa` debe ser un `string` limpio sin espacios para que el `merge` funcione correctamente.
+                <ul>
+                    <li><strong>`tostring id_empresa, replace force`</strong>: Este comando convierte la variable `id_empresa` a tipo `string`. La opción `force` es útil si contiene números que parecen strings.</li>
+                    <li><strong>`replace id_empresa = strtrim(stritrim(id_empresa))`</strong>: Este comando es clave para la limpieza. `stritrim()` quita los espacios al inicio y al final del texto. Luego, `strtrim()` quita los espacios internos extra. Esto asegura que la clave `id_empresa` sea idéntica en ambas tablas.</li>
+                </ul>
+                </p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+* Asegurar que id_empresa esté limpia y sea string
+tostring id_empresa, replace force
+replace id_empresa = strtrim(stritrim(id_empresa))
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="evaluacion-missings" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">3. Evaluación de Missings y Ceros</h2>
+                <p class="mt-4 text-lg text-slate-600">Una revisión fundamental antes de la construcción de variables.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Antes de construir nuestras variables, es vital entender el estado de nuestros datos. Este bucle `foreach` nos ayuda a contar los valores perdidos (`missing`) y los ceros para cada variable numérica, excluyendo las de identificación y año.</p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 3. EVALUACIÓN DE MISSINGS Y CEROS ********
+ds año id_empresa actividad_economica, not
+foreach var of varlist `r(varlist)' {
+    count if missing(`var')
+    di "`var': missing = `r(N)'"
+
+    count if `var' == 0
+    di "`var': ceros = `r(N)'"
+}
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="transformacion-variables" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">4. Destring y Resumen de Variables</h2>
+                <p class="mt-4 text-lg text-slate-600">Asegurando que todas las variables numéricas estén en el formato correcto.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Este paso es similar al que vimos en la Clase 5, donde usamos un bucle `foreach` para convertir todas las variables que no son de identificación o año a un formato numérico. Luego, usamos `summarize` para obtener un resumen rápido de todas las variables numéricas.</p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 4. DESTRING DE VARIABLES NUMÉRICAS ********
+ds año id_empresa actividad_economica, not
+foreach var of varlist `r(varlist)' {
+    capture destring `var', replace ignore(",") force
+}
+
+******** 5. RESUMEN DE VARIABLES NUMÉRICAS ********
+ds año actividad_economica, not
+summarize `r(varlist)'
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="construccion-variables" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">5. Construcción de Variables de Conciliación</h2>
+                <p class="mt-4 text-lg text-slate-600">Usando la función `cond()` para una lógica avanzada.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Aquí es donde construimos las variables que necesitamos para la conciliación. En lugar de `if` y `else` por separado, usamos la función **`cond()`**, que es ideal para aplicar lógica condicional en la creación de variables en una sola línea.
+                <ul class="list-disc list-inside space-y-2 text-slate-600 mb-4">
+                    <li>La sintaxis es: **`cond(condición, valor_si_verdadero, valor_si_falso)`**.</li>
+                    <li>En este caso, la condición es `missing(variable)`, que evalúa si la variable tiene un valor perdido. Si es así, asigna `0` (`valor_si_verdadero`), y si no lo es, asigna el valor original de la variable (`valor_si_falso`). Esto nos permite tratar los missings como ceros para los cálculos.</li>
+                </ul>
+                </p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 6. CONSTRUCCIÓN DE VARIABLES DE CONCILIACIÓN ********
+
+gen utilidad_contable = utilidad_antes_participacion
+
+* Diferencias permanentes
+replace participacion_trabajadores    = cond(missing(participacion_trabajadores), 0, participacion_trabajadores)
+replace gastos_no_deducibles        = cond(missing(gastos_no_deducibles), 0, gastos_no_deducibles)
+replace ingresos_exentos              = cond(missing(ingresos_exentos), 0, ingresos_exentos)
+replace ajuste_rimpe                  = cond(missing(ajuste_rimpe), 0, ajuste_rimpe)
+
+gen dif_perm_total = participacion_trabajadores + gastos_no_deducibles - ingresos_exentos - ajuste_rimpe
+
+* Diferencias temporales
+gen prov_inventarios    = cond(missing(provision_inventarios), 0, provision_inventarios)
+gen amortizaciones      = cond(missing(amortizaciones_acumuladas), 0, amortizaciones_acumuladas)
+
+gen dif_temp_total = prov_inventarios + amortizaciones
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="calculo-utilidad" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">6. Cálculo de la Utilidad Gravable</h2>
+                <p class="mt-4 text-lg text-slate-600">La fórmula final de la conciliación.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">El objetivo final es calcular la utilidad gravable, sumando las diferencias permanentes y temporales a la utilidad contable.</p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 7. CÁLCULO DE UTILIDAD GRAVABLE ********
+gen utilidad_gravable = utilidad_contable + dif_perm_total + dif_temp_total if !missing(utilidad_contable)
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="merge-join" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">7. Merge (Join): Uniendo Tablas</h2>
+                <p class="mt-4 text-lg text-slate-600">Combinando datos de la base principal con información del RUC.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Aquí aprenderás un concepto avanzado y muy útil: unir dos bases de datos. Para hacer esto de manera segura, usaremos **`tempfile`** y **`merge`**.
+                <ul class="list-disc list-inside space-y-2 text-slate-600 mb-4">
+                    <li><strong>`tempfile nombre`</strong>: Este comando crea un nombre de archivo temporal para la base de datos que está actualmente en memoria. Esto es fundamental para no sobrescribir archivos importantes y para asegurarnos de que la base de datos principal esté disponible más tarde. En el código, guardamos la base principal con `save `tempfile'', la base RUC con `save `ructable'' y luego volvemos a la base principal con `use `masterdata'`.</li>
+                    <li><strong>`merge m:1`</strong>: Este es el comando para unir bases de datos.
+                        <ul>
+                            <li>`m:1`: Indica una relación "muchos a uno", donde `id_empresa` puede aparecer muchas veces en la base principal (`master`) pero solo una vez en la base RUC (`using`).</li>
+                            <li>`id_empresa`: Es la clave de unión, la variable que debe ser idéntica en ambas bases para que los datos se puedan combinar.</li>
+                            <li>`using `nombre_base'`: Indica la base de datos con la que queremos hacer el `merge`.</li>
+                            <li>`keep(match master)`: Le dice a Stata que mantenga solo las observaciones que encontraron una coincidencia (`match`) o que existían solo en la base principal (`master`).</li>
+                            <li>`nogenerate`: Es una opción que evita que Stata cree la variable `_merge`, que indica el resultado de la unión.</li>
+                        </ul>
+                    </li>
+                </ul>
+                </p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 8. JOIN CON TABLA RUC (TIPO CONTRIBUYENTE, GC) ********
+
+* Guardar base principal antes del merge
+tempfile masterdata
+save `masterdata', replace
+
+* Cargar y preparar tabla RUC
+import delimited "$basedir/tabla_ruc_simulada.csv", clear encoding(utf8)
+tostring id_empresa, replace force
+replace id_empresa = strtrim(stritrim(id_empresa))
+
+keep id_empresa tipo_contribuyente es_gran_contribuyente
+tempfile ructable
+save `ructable', replace
+
+* Volver a cargar la base principal
+use `masterdata', clear
+tostring id_empresa, replace force
+replace id_empresa = strtrim(stritrim(id_empresa))
+
+* Merge con tabla RUC
+merge m:1 id_empresa using `ructable', keep(match master) nogenerate
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+        
+        <section id="resumenes-finales" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">8. Resúmenes de Utilidad Gravable</h2>
+                <p class="mt-4 text-lg text-slate-600">Calculando estadísticas por grupo y guardando la base final.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Finalmente, resumimos la utilidad gravable por categorías, lo que nos permite comparar los resultados de la conciliación entre diferentes tipos de contribuyentes y años.</p>
+
+                <h3 class="text-xl font-bold mb-3">Resumen por Grupo (`collapse` con `preserve`/`restore`)</h3>
+                <p class="mb-3 text-slate-600">El comando **`collapse`** es la forma de Stata de crear una base de datos resumen, con una observación por cada grupo definido.
+                <ul>
+                    <li>`collapse (mean) media = utilidad_gravable`: Calcula la media de `utilidad_gravable` y la guarda en una nueva variable llamada `media`.</li>
+                    <li>`by(año tipo_contribuyente ...)`: Define las variables de agrupación. La base de datos resultante tendrá una fila para cada combinación única de estas variables.</li>
+                    <li><strong>`preserve`</strong> y <strong>`restore`</strong>: Recordamos de la Clase 5 que este par de comandos es esencial. Como `collapse` modifica la base de datos de manera irreversible, **`preserve`** guarda la base original antes del `collapse` y **`restore`** la recupera después de que hayamos terminado, permitiéndonos guardar la base de datos completa con todos los cálculos.</li>
+                </ul>
+                </p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 9. RESÚMENES DE UTILIDAD GRAVABLE ********
+preserve
+collapse (mean) media = utilidad_gravable ///
+         (sd) sd = utilidad_gravable ///
+         (count) conteo = utilidad_gravable, ///
+         by(año tipo_contribuyente es_gran_contribuyente)
+
+list año tipo_contribuyente es_gran_contribuyente ///
+      media sd conteo, sepby(año)
+restore
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="guardar" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">9. Guardar la Base Final</h2>
+                <p class="mt-4 text-lg text-slate-600">Concluyendo el proceso ETL.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <p class="mb-4 text-slate-700">Finalmente, guardamos la base de datos completa y construida. Fíjate cómo usamos la macro global `$outputdir` que definimos al inicio. Esto asegura que nuestro archivo de salida se guarde en la ubicación correcta, sin importar en qué computadora se ejecute el script, siempre y cuando la macro base esté bien definida.</p>
+                <div class="code-block-container mb-6">
+                    <pre class="bg-slate-800 text-white p-4 rounded-md overflow-x-auto"><code class="language-stata">
+******** 10. GUARDAR BASE FINAL ********
+save "$outputdir/conciliacion_construida.dta", replace
+</code></pre>
+                    <button class="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>&copy; 2025 Curso de Stata Básico. ¡Sigue practicando!</p>
+        </div>
+    </footer>
+
+    <div id="copy-feedback" class="fixed bottom-5 right-5 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+        ¡Copiado!
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+
+    // Copy button functionality
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    const copyFeedback = document.getElementById('copy-feedback');
+    copyButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const codeBlock = e.target.previousElementSibling.querySelector('code');
+            const codeText = codeBlock.innerText;
+
+            document.execCommand('copy'); // Fallback for clipboard API in iframes
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            copyFeedback.classList.remove('opacity-0');
+            setTimeout(() => {
+                copyFeedback.classList.add('opacity-0');
+            }, 2000);
+        });
+    });
+});
+</script>
+</body>
+</html>
